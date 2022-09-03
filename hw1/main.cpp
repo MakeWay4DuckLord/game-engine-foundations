@@ -33,10 +33,17 @@ int main()
 		moving_platform.update();
 		character.update();
 		
+		//collision detection! basically just moves the character upwards if its intersecting with any of the platforms
+		//this allows the character to land on the platforms, but makes interactions hitting the platforms from the side a little weird
+	    if(character.getGlobalBounds().intersects(platform.getGlobalBounds()) || character.getGlobalBounds().intersects(moving_platform.getGlobalBounds())) {
+			character.move(sf::Vector2f(0.0f, -0.5f));
+		}
+		
 		//draw the frame
 		window.draw(platform);
 		window.draw(moving_platform);
 		window.draw(character);
+
 
 		//end current frame
 		window.display();
