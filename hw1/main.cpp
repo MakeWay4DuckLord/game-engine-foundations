@@ -1,8 +1,17 @@
 #include <SFML/Graphics.hpp>
+#include "Platform.h"
+#include "MovingPlatform.h"
+
 int main()
 {
 	//create the window
 	sf::RenderWindow window(sf::VideoMode(800, 600), "window");
+
+	//create the objects
+	Platform platform(sf::Vector2f(200.f, 100.f), sf::Vector2f(0.f, 400.f));
+	MovingPlatform moving_platform(sf::Vector2f(200.f, 100.f), sf::Vector2f(300.f, 400.f), sf::Vector2f(0.1f,0.0f));
+
+
 	//keep looping while window is open
 	while(window.isOpen()) {
 		//check each event that happens to the window
@@ -17,13 +26,13 @@ int main()
 		//clear with black
 		window.clear(sf::Color::Black);
 
+		//update objects
+		platform.update();
+		moving_platform.update();
+		
 		//draw the frame
-		sf::RectangleShape platform(sf::Vector2f(100.f, 100.f));
-	
-		//set the position of the platform to the middle of the window 
-		platform.setPosition((window.getSize().x - platform.getSize().x) / 2, (window.getSize().y - platform.getSize().y) / 2);
-		platform.move(10.f,10.f);
 		window.draw(platform);
+		window.draw(moving_platform);
 
 		//end current frame
 		window.display();
