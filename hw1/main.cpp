@@ -13,6 +13,16 @@ int main()
 	MovingPlatform moving_platform(sf::Vector2f(200.f, 100.f), sf::Vector2f(300.f, 400.f), sf::Vector2f(0.1f,0.0f));
 	Character character(sf::Vector2f(50.f, 50.f), sf::Vector2f(350.f, 300.f));
 
+	//texture!
+	sf::Texture cheese;
+	cheese.loadFromFile("cheese.jpg");
+	platform.setTexture(&cheese);
+	moving_platform.setTexture(&cheese);
+
+	sf::Texture mouse;
+	mouse.loadFromFile("mouse.jpeg");
+	character.setTexture(&mouse);
+
 
 	//keep looping while window is open
 	while(window.isOpen()) {
