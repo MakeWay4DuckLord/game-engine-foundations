@@ -1,6 +1,7 @@
 #include <SFML/Graphics.hpp>
 #include "Platform.h"
 #include "MovingPlatform.h"
+#include "Character.h"
 
 int main()
 {
@@ -10,6 +11,7 @@ int main()
 	//create the objects
 	Platform platform(sf::Vector2f(200.f, 100.f), sf::Vector2f(0.f, 400.f));
 	MovingPlatform moving_platform(sf::Vector2f(200.f, 100.f), sf::Vector2f(300.f, 400.f), sf::Vector2f(0.1f,0.0f));
+	Character character(sf::Vector2f(50.f, 50.f), sf::Vector2f(350.f, 300.f));
 
 
 	//keep looping while window is open
@@ -29,10 +31,12 @@ int main()
 		//update objects
 		platform.update();
 		moving_platform.update();
+		character.update();
 		
 		//draw the frame
 		window.draw(platform);
 		window.draw(moving_platform);
+		window.draw(character);
 
 		//end current frame
 		window.display();
