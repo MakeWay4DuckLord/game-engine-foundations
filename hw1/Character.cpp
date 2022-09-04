@@ -1,8 +1,8 @@
 #include "Character.h"
 
-Character::Character(sf::Vector2f size, sf::Vector2f position): Platform(size, position)
+Character::Character(sf::Vector2f size, sf::Vector2f position): RectangleShape(size)
 {
-    //nothin
+    setPosition(position);
 };
 
 void Character::update()
