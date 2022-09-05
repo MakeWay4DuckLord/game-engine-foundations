@@ -23,6 +23,8 @@ int main()
 	mouse.loadFromFile("mouse.jpeg");
 	character.setTexture(&mouse);
 
+	//resize mode
+	bool constant_mode = false;
 
 	//keep looping while window is open
 	while(window.isOpen()) {
@@ -32,6 +34,15 @@ int main()
 			//if the event is a close request, close the window
 			if(event.type == sf::Event::Closed) {
 				window.close();
+			} else if(event.type == sf::Event::Resized && constant_mode) {
+				window.setView(sf::View(sf::FloatRect(0, 0, event.size.width, event.size.height)));
+			} else if(event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::P) {
+				constant_mode = !constant_mode;
+				if(constant_mode) {
+					window.setView(sf::View(sf::FloatRect(0, 0, window.getSize().x, window.getSize().y)));
+				} else {
+					window.setView(window.getDefaultView());
+				}
 			}
 		}
 
