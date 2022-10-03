@@ -12,9 +12,11 @@ class Timeline
         //get time
         unsigned int getTime();
         bool isPaused();
+        float setScalar(float scalar);
         void pause();
     
     private:
+        float scalar;
         bool paused;
         unsigned int pauseTime;
         unsigned int beginning;

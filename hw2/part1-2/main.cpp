@@ -110,6 +110,13 @@ int main()
 			} else if(event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Space) {
 				mainTimeline->pause();
 				last_time = mainTimeline->getTime();
+			} else if(event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Num2) {
+				last_time *= 0.5f / mainTimeline->setScalar(0.5f);
+			} else if(event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Num1) {
+				last_time *= 1.0f / mainTimeline->setScalar(1.0f);
+				// mainTimeline->setScalar(1.0f);
+			} else if(event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Num3) {
+				last_time *= 2.0f / mainTimeline->setScalar(2.0f);
 			}
 		}
 

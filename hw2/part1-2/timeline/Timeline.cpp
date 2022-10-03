@@ -10,6 +10,7 @@ unsigned int getMiliSinceEpoch() {
  * @param tic integer for tic size, i.e. number of tics of basis to make up one tic of this one
  */
 Timeline::Timeline(Timeline *basis, int tic) {
+    setScalar(1.0f);
     this->paused = false;
     this->tic = tic;
     this->basis = basis;
@@ -18,6 +19,12 @@ Timeline::Timeline(Timeline *basis, int tic) {
     } else {
         this->beginning = basis->getTime();
     }
+}
+
+float Timeline::setScalar(float scalar) {
+    float temp = this->scalar;
+    this->scalar = scalar;
+    return temp;
 }
 
 
@@ -31,7 +38,7 @@ unsigned int Timeline::getTime() {
     } else {
         time = basis->getTime() - beginning;
     }
-    time /= tic;
+    time *= scalar / tic;
     return time;
 }
 
