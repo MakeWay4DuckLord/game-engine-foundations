@@ -19,20 +19,31 @@ using json = nlohmann::json;
 
 /**
  * method to be used by threads to parallelize updating game objects
- * calls updateGameObject on each GameObject in objects
+ * calls updateGameObject on each platform in the given GameState
  * @param objects pointer to a vector of GameObject pointers
  */
 void updatePlatforms(GameState *state, unsigned int delta) {
 	state->updatePlatforms(delta);
 }
+
 /**
  * method to be used by threads to parallelize drawing game objects
- * draws each GameObject in objects to the given window.
- * @param objects pointer to a vector of GameObject pointers
+ * draws each platform in the GameState to the given window.
+ * @param GameState pointer to the game state object
  * @param window pointer to an sf::RenderWindow
  */
 void drawPlatforms(GameState *state, sf::RenderWindow *window) {
 	state->drawPlatforms(window);
+}
+
+/**
+ * method to be used by threads to parallelize drawing game objects
+ * draws each character in GameState to the given window.
+ * @param GameState pointer to the game state object
+ * @param window pointer to an sf::RenderWindow
+ */
+void drawCharacters(GameState *state, sf::RenderWindow *window) {
+	state->drawCharacters(window);
 }
 
 int main()
@@ -41,9 +52,7 @@ int main()
 	sf::RenderWindow window(sf::VideoMode(800, 600), "window"); 
  
 	//create state
-    json data = "[[[50.0,50.0,350.0,300.0]],[[200.0,100.0,0.0,400.0]]]"_json;
-	GameState *statePtr = new GameState();
-	GameState state = *statePtr;
+	GameState state = *new GameState();
 
 	//populate state
 	state.addPlatform(0, new MovingPlatform(sf::Vector2f(200.f, 100.f), sf::Vector2f(300.f, 400.f), sf::Vector2f(.6f,0.6f)));
@@ -58,13 +67,6 @@ int main()
 		p.second->setTexture(&cheese);
 	} 
 
-	sf::Texture mouse;
-	mouse.loadFromFile("textures/mouse.jpeg");
-
-	for(std::pair<int, Character*> c : state.characters){
-		c.second->setTexture(&mouse);
-	} 
-	
 	//create and bind socket
 	zmq::context_t context(1);
 	zmq::socket_t socket(context, zmq::socket_type::rep);
@@ -121,7 +123,7 @@ int main()
 			}
 		}
 
-		// std::this_thread::sleep_for(std::chrono::milliseconds(25));
+		std::this_thread::sleep_for(std::chrono::milliseconds(25));
 
 		//clear with black
 		window.clear(sf::Color::Black);
@@ -131,16 +133,9 @@ int main()
 		//first clean up the log
 		state.clearUpdateLog();
 
-		//start thread to update platforms
-		std::thread platformThread(updatePlatforms, &state, delta);
-		
-		//update local character while platforms are updating
-		//TODO introduction of update log makes this not thread safe anymore, as you could be writing to the updateLog simultaneously
+		//update object server is responsible for	
 		state.updateCharacter(0, delta);
-		
-		//wait for thread to finish
-		platformThread.join();
-		// characterThread.join();
+		state.updatePlatforms(delta);
 		
 		//start drawing the platforms while the main thread does collision logic
 		std::thread platformDrawer(drawPlatforms, &state, &window);
@@ -149,7 +144,7 @@ int main()
 
 		/* collision detection! basically just moves the character upwards while its intersecting with any of the platforms
 		 * this allows the character to land on the platforms, but makes interactions hitting the platforms from the side a little weird
-		 * collisions could definitely use an update, this currently doesn't just work if more characters or platforms are added.
+		 * each client manages their own collision detection
 		 */
 	    while(state.characters[0]->getGlobalBounds().intersects(state.platforms[0]->getGlobalBounds()) || state.characters[0]->getGlobalBounds().intersects(state.platforms[1]->getGlobalBounds())) {
 			state.characters[0]->move(sf::Vector2f(0.0f, -0.1f));
@@ -199,13 +194,13 @@ int main()
 					socket.send(msg, zmq::send_flags::none);
 				}
 			}
+		}
 
+		platformDrawer.join();
+		std::thread characterDrawer(drawCharacters, &state, &window);
+
+		if(clients != 0) {
 			//first section done, every thing is updated, now do second requests
-			json updateJson = state.getUpdateLog();
-			updateJson["first"] = false;
-			updateJson["second"] = true;
-			std::string updateStr = updateJson.dump();
-			zmq::message_t serverUpdate(updateStr.c_str(), updateStr.length());
 			for(int i = 1; i <= clients; i++) {
 				zmq::message_t request;
 				socket.recv(request, zmq::recv_flags::none);
@@ -214,12 +209,12 @@ int main()
 				//if its not a new string
 				if(req_j["clientID"] != 0) {
 					//client knows to disregard the update if its in the wrong section
+					json updateJson = state.getUpdateLog();
+					updateJson["first"] = false;
+					updateJson["second"] = true;
+					std::string updateStr = updateJson.dump();
+					zmq::message_t serverUpdate(updateStr.c_str(), updateStr.length());
 					socket.send(serverUpdate, zmq::send_flags::none);
-
-					//but we still gotta make sure to decrement i
-					if(req_j["first"]) {
-						i--;
-					}
 
 				} else { //if client is new, tell it to hold its horse for a bit
 					//client knows to keep checking in until it is given
@@ -232,17 +227,7 @@ int main()
 			}
 		}
 
-		// std::cout << clients << std::endl;
-		
-
-
-		//wait for thread to finish drawing platforms
-		platformDrawer.join();
-		
-		//draw characters
-		// drawObjects(&state.characters, &window);
-		// window.draw(*state.characters[0]);
-		state.drawCharacters(&window);
+		characterDrawer.join();
 
 		//end current frame
 		window.display();
