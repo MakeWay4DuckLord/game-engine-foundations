@@ -1,8 +1,0 @@
-To compile, simply run: make
-To run the project, run: ./main 
-
-apt installed libzmq3-dev
-apt install libzmqpp-dev
-apt install nlohmann-json3-dev
-
-g++ source.c -o executable -lzmq
