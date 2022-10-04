@@ -36,9 +36,6 @@ void drawObjects(std::vector<GameObject *> *objects, sf::RenderWindow *window) {
 }
 
 
-
-
-
 int main()
 {
 	//create the window
@@ -66,14 +63,6 @@ int main()
 	for(GameObject* &p : platforms){
 		p->setTexture(&cheese);
 	} 
-
-	sf::Texture mouse;
-	mouse.loadFromFile("textures/mouse.jpeg");
-
-	for(GameObject* &c : characters){
-		c->setTexture(&mouse);
-	} 
-
 
 	//resize mode
 	bool constant_mode = false;

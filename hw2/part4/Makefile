@@ -54,4 +54,4 @@ endif
 
 .PHONY: clean
 clean:
-	rm -f $(obj) client.o server client
+	rm -f $(obj) main client
