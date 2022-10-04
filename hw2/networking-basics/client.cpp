@@ -2,6 +2,7 @@
 #include <string.h>
 #include <iostream>
 #include <unistd.h>
+#include <nlohmann/json.hpp>
 #include "clientData.h"
 
 //helper method to print out data from clientData struct
