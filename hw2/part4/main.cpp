@@ -22,10 +22,8 @@ using json = nlohmann::json;
  * calls updateGameObject on each GameObject in objects
  * @param objects pointer to a vector of GameObject pointers
  */
-void updateObjects(std::vector<GameObject *> *objects, unsigned int delta) {
-	for(GameObject* &object : *objects) {
-		object->updateGameObject(delta);
-	}
+void updatePlatforms(GameState *state, unsigned int delta) {
+	state->updatePlatforms(delta);
 }
 /**
  * method to be used by threads to parallelize drawing game objects
@@ -33,10 +31,8 @@ void updateObjects(std::vector<GameObject *> *objects, unsigned int delta) {
  * @param objects pointer to a vector of GameObject pointers
  * @param window pointer to an sf::RenderWindow
  */
-void drawObjects(std::vector<GameObject *> *objects, sf::RenderWindow *window) {
-	for(GameObject* &object : *objects) {
-		window->draw(*object);
-	}
+void drawPlatforms(GameState *state, sf::RenderWindow *window) {
+	state->drawPlatforms(window);
 }
 
 int main()
@@ -50,24 +46,23 @@ int main()
 	GameState state = *statePtr;
 
 	//populate state
-	state.platforms.push_back(new MovingPlatform(sf::Vector2f(200.f, 100.f), sf::Vector2f(300.f, 400.f), sf::Vector2f(.6f,0.6f)));
-	state.platforms.push_back(new Platform(sf::Vector2f(200.f, 100.f), sf::Vector2f(0.f, 400.f)));
-	state.characters.push_back(new Character(sf::Vector2f(50.f, 50.f), sf::Vector2f(350.f, 300.f)));
-	std::cout << data.dump() << state.count() << std::endl;
+	state.addPlatform(0, new MovingPlatform(sf::Vector2f(200.f, 100.f), sf::Vector2f(300.f, 400.f), sf::Vector2f(.6f,0.6f)));
+	state.addPlatform(1, new Platform(sf::Vector2f(200.f, 100.f), sf::Vector2f(0.f, 400.f)));
+	state.addCharacter(0, new Character(sf::Vector2f(50.f, 50.f), sf::Vector2f(350.f, 300.f)));
 
 	//add textures
 	sf::Texture cheese;
 	cheese.loadFromFile("textures/cheese.jpg");
 
-	for(GameObject* &p : state.platforms){
-		p->setTexture(&cheese);
+	for(const auto &p : state.platforms){
+		p.second->setTexture(&cheese);
 	} 
 
 	sf::Texture mouse;
 	mouse.loadFromFile("textures/mouse.jpeg");
 
-	for(GameObject* &c : state.characters){
-		c->setTexture(&mouse);
+	for(std::pair<int, Character*> c : state.characters){
+		c.second->setTexture(&mouse);
 	} 
 	
 	//create and bind socket
@@ -126,31 +121,31 @@ int main()
 			}
 		}
 
-		std::this_thread::sleep_for(std::chrono::milliseconds(25));
+		// std::this_thread::sleep_for(std::chrono::milliseconds(25));
 
 		//clear with black
 		window.clear(sf::Color::Black);
 
-		// //update objects using the fork and join pattern
-		std::thread platformThread(updateObjects, &state.platforms, delta);
-		std::thread characterThread(updateObjects, &state.characters, delta);
+		//update objects using the fork and join pattern
+		
+		//first clean up the log
+		state.clearUpdateLog();
 
-		// //wait for threads to finish updating all objects
+		//start thread to update platforms
+		std::thread platformThread(updatePlatforms, &state, delta);
+		
+		//update local character while platforms are updating
+		//TODO introduction of update log makes this not thread safe anymore, as you could be writing to the updateLog simultaneously
+		state.updateCharacter(0, delta);
+		
+		//wait for thread to finish
 		platformThread.join();
-		characterThread.join();
+		// characterThread.join();
 		
 		//start drawing the platforms while the main thread does collision logic
-		std::thread platformDrawer(drawObjects, &state.platforms, &window);
+		std::thread platformDrawer(drawPlatforms, &state, &window);
 		
-		/* collision detection! basically just moves the character upwards while its intersecting with any of the platforms
-		 * this allows the character to land on the platforms, but makes interactions hitting the platforms from the side a little weird
-		 * collisions could definitely use an update, this currently doesn't just work if more characters or platforms are added.
-		 */
-	    // while(character.getGlobalBounds().intersects(platform.getGlobalBounds()) || character.getGlobalBounds().intersects(moving_platform.getGlobalBounds())) {
-		// 	character.move(sf::Vector2f(0.0f, -0.1f));
-		// }
-		
-		// character.updateGameObject(delta);
+		//while platform are drawing do collision detection to update local character position, then do networking
 
 		/* collision detection! basically just moves the character upwards while its intersecting with any of the platforms
 		 * this allows the character to land on the platforms, but makes interactions hitting the platforms from the side a little weird
@@ -160,25 +155,94 @@ int main()
 			state.characters[0]->move(sf::Vector2f(0.0f, -0.1f));
 		}
 
-		//networking!!
-		for(int i = 0; i <= clients; i++) {
+		//network
+		if(clients == 0) {
 			zmq::message_t request;
-			if(i == clients) {
-				if(socket.recv(request, zmq::recv_flags::dontwait)) {
-					std::string data = state.serialize().dump();
+			if(socket.recv(request, zmq::recv_flags::dontwait)) {
+					clients++;
+					state.addCharacter(clients, new Character(sf::Vector2f(50.f, 50.f), sf::Vector2f(350.f, 300.f)));
+					json data_j = state.serialize();
+					data_j["clientID"] = clients;
+					std::string data = data_j.dump();
 					zmq::message_t initRep((void *) data.c_str(), data.length());
 					socket.send(initRep, zmq::send_flags::none);
 				}
-				
+		} else {	
+			//handle first request unt
+			for(int i = 1; i <= clients; i++) {
+				zmq::message_t request;
+				socket.recv(request, zmq::recv_flags::none);
+				json req_j = json::parse(request.to_string());
+
+				if(req_j["clientID"] == 0) { //new client
+					//client is incremented so this wont count against stuff
+					state.addCharacter(++clients, new Character(sf::Vector2f(50.f, 50.f), sf::Vector2f(350.f, 300.f)));
+					json data_j = state.serialize();
+					data_j["clientID"] = clients;
+					std::string data = data_j.dump();
+					zmq::message_t initRep(data.c_str(), data.length());
+					socket.send(initRep, zmq::send_flags::none);
+				} else { // returning client
+					if(req_j["first"]) {
+						state.updateCharacter(req_j);
+					} else {
+						//decrement i to not count a clients second request
+						i--;
+					}
+
+					//tell client which part of the networking section the server is in
+					json reply_j = {
+						{"first", true},
+						{"second", false},
+					}; 
+					zmq::message_t msg(reply_j.dump().c_str(), reply_j.dump().length());
+					socket.send(msg, zmq::send_flags::none);
+				}
+			}
+
+			//first section done, every thing is updated, now do second requests
+			json updateJson = state.getUpdateLog();
+			updateJson["first"] = false;
+			updateJson["second"] = true;
+			std::string updateStr = updateJson.dump();
+			zmq::message_t serverUpdate(updateStr.c_str(), updateStr.length());
+			for(int i = 1; i <= clients; i++) {
+				zmq::message_t request;
+				socket.recv(request, zmq::recv_flags::none);
+				json req_j = json::parse(request.to_string());
+
+				//if its not a new string
+				if(req_j["clientID"] != 0) {
+					//client knows to disregard the update if its in the wrong section
+					socket.send(serverUpdate, zmq::send_flags::none);
+
+					//but we still gotta make sure to decrement i
+					if(req_j["first"]) {
+						i--;
+					}
+
+				} else { //if client is new, tell it to hold its horse for a bit
+					//client knows to keep checking in until it is given
+					socket.send(request, zmq::send_flags::none);
+
+					//decrement i so we dont skip any clients
+					i--;
+				}
+
 			}
 		}
+
+		// std::cout << clients << std::endl;
+		
 
 
 		//wait for thread to finish drawing platforms
 		platformDrawer.join();
 		
 		//draw characters
-		drawObjects(&state.characters, &window);
+		// drawObjects(&state.characters, &window);
+		// window.draw(*state.characters[0]);
+		state.drawCharacters(&window);
 
 		//end current frame
 		window.display();

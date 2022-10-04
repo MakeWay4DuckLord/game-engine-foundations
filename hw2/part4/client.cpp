@@ -44,9 +44,6 @@ int main()
 {
 	//create the window
 	sf::RenderWindow window(sf::VideoMode(800, 600), "window");
-
-	//create the objects
-	// Character character(sf::Vector2f(50.f, 50.f), sf::Vector2f(350.f, 300.f));
  
     //create and join socket!
     zmq::context_t context(1);
@@ -58,24 +55,36 @@ int main()
       std::cout << "socket cannot be bound??" << std::endl;
       return 1;
     }
+
     //initialization req
+	json newClient {
+		{"clientID", 0},
+	};
+    zmq::message_t initRequest(newClient.dump().c_str(), newClient.dump().length());
+	bool waiting = true;
+	int clientID;
+	GameState state;
+	Character *character;			
+	//if server is ready to add a new client it will send back a non zero clientID, 
+	while(waiting) {
+		socket.send(initRequest, zmq::send_flags::none);
 
-    zmq::message_t initRequest(1);
+		zmq::message_t reply;
+		socket.recv(reply, zmq::recv_flags::none);
+		
 
-    socket.send(initRequest, zmq::send_flags::none);
+		json data = json::parse(reply.to_string());
+		
+		std::cout << reply.to_string() << "initialization" << std::endl;
 
-    zmq::message_t reply;
-    socket.recv(reply, zmq::recv_flags::none);
+		if(data["clientID"] != 0) {
+			state = *new GameState(data);
+			clientID = data["clientID"];
+			character = state.characters[clientID];
+			waiting = false;
+		}
+	}
 
-    json data = json::parse(reply.to_string());
-
-	// GameState preState(characters, platforms);
-
-	// json data = preState.serialize();
-
-
-	// GameState *statePtr = new GameState();
-	GameState state(data);
 
 	// std::cout << data.dump() << state.count() << std::endl;
 
@@ -83,16 +92,16 @@ int main()
 	sf::Texture cheese;
 	cheese.loadFromFile("textures/cheese.jpg");
 
-	for(GameObject* &p : state.platforms){
-		p->setTexture(&cheese);
+	for(const auto &p : state.platforms){
+		p.second->setTexture(&cheese);
 	} 
 
 	sf::Texture mouse;
 	mouse.loadFromFile("textures/mouse.jpeg");
 
-	for(GameObject* &c : state.characters){
-		c->setTexture(&mouse);
-	} 
+	for(std::pair<int, Character*> c : state.characters){
+		c.second->setTexture(&mouse);
+	}  
 
 
 
@@ -142,17 +151,79 @@ int main()
 			}
 		}
 
+		//simulate some more work
 		std::this_thread::sleep_for(std::chrono::milliseconds(25));
 
 		//clear with black
 		window.clear(sf::Color::Black);
 
-		// character.updateGameObject(delta);
+		//update our object
+		character->updateGameObject(delta);
+
+		/* collision detection! basically just moves the character upwards while its intersecting with any of the platforms
+		 * this allows the character to land on the platforms, but makes interactions hitting the platforms from the side a little weird
+		 * collisions could definitely use an update, this currently doesn't just work if more characters or platforms are added.
+		 */
+		for(const auto &p : state.platforms) {
+			while(state.characters[clientID]->getGlobalBounds().intersects(p.second->getGlobalBounds())) {
+				state.characters[clientID]->move(sf::Vector2f(0.0f, -0.1f));
+			}
+		}
+		//now character is all updated, give this info to server:
+		json charUpdate {
+			{"first", true},
+			{"second", false},
+			{"clientID", clientID},
+			{"position.x", character->getPosition().x},
+			{"position.y", character->getPosition().y},
+		};
+
+		std::string msgStr = charUpdate.dump();
+		zmq::message_t msg(msgStr.c_str(), msgStr.length());
+		bool polling = true;
+		while(polling){
+			socket.send(msg, zmq::send_flags::none);
+
+			zmq::message_t confirmation;
+			socket.recv(confirmation, zmq::recv_flags::none);
+
+			std::cout << confirmation.to_string() << "confirmation" << std::endl;
+			json reply = json::parse(confirmation.to_string());
+			//keep going until the server tells us it was in the first networking section
+			if(reply["first"]){
+				polling = false;
+			}
+		}
+
+		/* now we will poll the server asking for an update, 
+		 * which it will give us once its received updates from all clients.
+		 */
+		json updateRequestJ {
+			{"first", false},
+			{"second", true},
+			{"clientID", clientID},
+		};
+		std::string reqStr = updateRequestJ.dump();
+		zmq::message_t updateRequest(reqStr.c_str(), reqStr.length());
+		polling = true;
+		while(polling) {
+			socket.send(updateRequest, zmq::send_flags::none);
+
+			zmq::message_t reply;
+			socket.recv(reply, zmq::recv_flags::none);
+			std::cout << reply.to_string() << "update" << std::endl;
+			json serverUpdate = json::parse(reply.to_string());
+			if(serverUpdate["second"]) {
+				polling = false;
+				state.update(serverUpdate);
+			}
+
+		}
+
 
 
 		//draw characters
-        drawObjects(&state.characters, &window);
-		drawObjects(&state.platforms, &window);
+		state.drawAll(&window);
 
 		//end current frame
 		window.display();
