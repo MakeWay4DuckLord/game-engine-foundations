@@ -1,7 +1,5 @@
 #include <SFML/Graphics.hpp>
 #include <thread>
-#include <mutex>
-#include <condition_variable>
 #include "game-objects/Platform.h"
 #include "game-objects/MovingPlatform.h"
 #include "game-objects/Character.h"
@@ -53,9 +51,6 @@ int main()
 	std::vector<GameObject *> characters;
 	characters.push_back(&character);
 
-
-
-
 	//texture!
 	sf::Texture cheese;
 	cheese.loadFromFile("textures/cheese.jpg");
@@ -79,7 +74,7 @@ int main()
 		last_time = current_time;
 
 		//print for debugging
-		std::cout << delta << std::endl;
+		// std::cout << delta << std::endl;
 
 		//check each event that happens to the window
 		sf::Event event;
@@ -129,8 +124,12 @@ int main()
 		 * this allows the character to land on the platforms, but makes interactions hitting the platforms from the side a little weird
 		 * collisions could definitely use an update, this currently doesn't just work if more characters or platforms are added.
 		 */
-	    while(character.getGlobalBounds().intersects(platform.getGlobalBounds()) || character.getGlobalBounds().intersects(moving_platform.getGlobalBounds())) {
-			character.move(sf::Vector2f(0.0f, -0.1f));
+		for(GameObject *character : characters) {
+			for(GameObject *platform : platforms){
+				while(character->getGlobalBounds().intersects(platform->getGlobalBounds())) {
+					character->move(sf::Vector2f(0.0f, -0.1f));
+				}
+			}
 		}
 
 		//wait for thread to finish drawing platforms

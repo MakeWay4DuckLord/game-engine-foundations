@@ -1,45 +1,52 @@
 #include <zmq.hpp>
 #include <string.h>
 #include <iostream>
-#include <unistd.h>
 #include <nlohmann/json.hpp>
-#include "clientData.h"
 
 using json = nlohmann::json;
 
 int main(void) {
-    
-    //create json object with data
-    json data = {
-        {"id", 0},
-        {"iteration", 0},
-    };
-    
-    // std::cout << data["id"] << data["iteration"] << std::endl;
-    
 
     //connect to the server with a req socket
     zmq::context_t context(1);
-    const char * protocol = "tcp://127.0.0.1:5555";
+    const char * reqProtocol = "tcp://127.0.0.1:5555";
+    const char * subProtocol = "tcp://127.0.0.1:5556";
     zmq::socket_t mySocket (context, zmq::socket_type::req);
-    mySocket.connect(protocol);
+    zmq::socket_t subSocket (context, zmq::socket_type::sub);
+    mySocket.connect(reqProtocol);
+    subSocket.connect(subProtocol);
 
-    while(true) {
-        //send request
-        std::string s = data.dump();
-        zmq::message_t request(s.c_str(), s.length());
-        mySocket.send(request, zmq::send_flags::none);
+    subSocket.setsockopt(ZMQ_SUBSCRIBE, "", 0);
 
-        //wait for reply
-        zmq::message_t reply;
-        mySocket.recv(reply, zmq::recv_flags::none);
-
-        //get data out of json and print it
-        data = json::parse(reply.to_string());
-        std::cout << "Client " << data["id"] << ": Iteration " << data["iteration"] << std::endl;
+   if(!subSocket.connected()) {
+      std::cout << "socket cannot be bound??" << std::endl;
+      return 1;
     }
 
+    //do intitial req
+    json initReq = {
+        {"id", -1},
+        {"iteration", 0},
+    };
+
+    std::string msgStr = initReq.dump();
+    zmq::message_t msg(msgStr.c_str(), msgStr.length());
+    mySocket.send(msg, zmq::send_flags::none);
+
+    //dont need to do anything with this reply
+    zmq::message_t reply;
+    mySocket.recv(reply, zmq::recv_flags::none);
     mySocket.close();
+
+    //now just print out every message published to subscriber socket
+    while(true) {
+        zmq::message_t data;
+        subSocket.recv(data, zmq::recv_flags::none);
+        json client = json::parse(data.to_string());
+        std::cout << "Client " << client["id"] << ": Iteration " << client["iteration"] << std::endl;
+    }
+
+    subSocket.close();
     context.close();    
 
     return 0;

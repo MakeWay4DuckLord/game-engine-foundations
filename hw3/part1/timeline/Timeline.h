@@ -16,16 +16,13 @@ class Timeline
         void pause();
     
     private:
-        //scalar is a float multiplier of the speed of the timeline.
         float scalar;
-        //when paused is true the timeline will be frozen at the time when it was paused
         bool paused;
-        //the time when the timeline was paused
         unsigned int pauseTime;
-        //the time the timeline was created
         unsigned int beginning;
-        //tik size is the number of units of time in the basis which is one unit of time on this one
+        //relative 0, aka moment this timeline was started
+        //tik size
         int tic;
-        //basis: another timeline, if basis is NULL, the timeline will refer to std::chrono
+        //basis: another timeline, or std chrono
         Timeline *basis;
 };
