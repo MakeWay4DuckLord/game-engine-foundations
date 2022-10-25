@@ -3,11 +3,13 @@
 #include <string>
 #include <nlohmann/json.hpp>
 #include <nlohmann/adl_serializer.hpp>
-#include "game-objects/Platform.h"
-#include "game-objects/MovingPlatform.h"
-#include "game-objects/Character.h"
+#include "game-objects/components/CollisionComponent.h"
+#include "game-objects/components/CharMoveComponent.h"
+#include "game-objects/components/PatternMoveComponent.h"
+#include "game-objects/components/RenderComponent.h"
 #include "timeline/Timeline.h"
-#include "GameState.h"
+#include "game-objects/GameObject.h"
+#include "game-objects/Character.h"
 #include <iostream>
 #include <unistd.h>
 #include <zmq.hpp>
@@ -17,66 +19,49 @@
 
 using json = nlohmann::json;
 
-/**
- * method to be used by threads to parallelize updating game objects
- * calls updateGameObject on each platform in the given GameState
- * @param objects pointer to a vector of GameObject pointers
- */
-void updatePlatforms(GameState *state, unsigned int delta) {
-	state->updatePlatforms(delta);
-}
-
-/**
- * method to be used by threads to parallelize drawing game objects
- * draws each platform in the GameState to the given window.
- * @param GameState pointer to the game state object
- * @param window pointer to an sf::RenderWindow
- */
-void drawPlatforms(GameState *state, sf::RenderWindow *window) {
-	state->drawPlatforms(window);
-}
-
-/**
- * method to be used by threads to parallelize drawing game objects
- * draws each character in GameState to the given window.
- * @param GameState pointer to the game state object
- * @param window pointer to an sf::RenderWindow
- */
-void drawCharacters(GameState *state, sf::RenderWindow *window) {
-	state->drawCharacters(window);
-}
-
 int main()
 {
 	//create the window
-	sf::RenderWindow window(sf::VideoMode(800, 600), "window"); 
+	sf::RenderWindow *window = new sf::RenderWindow(sf::VideoMode(800, 600), "window"); 
  
 	//create state
-	GameState state = *new GameState();
 
 	//populate state
-	state.addPlatform(0, new MovingPlatform(sf::Vector2f(200.f, 100.f), sf::Vector2f(300.f, 400.f), sf::Vector2f(.6f,0.6f)));
-	state.addPlatform(1, new Platform(sf::Vector2f(200.f, 100.f), sf::Vector2f(0.f, 400.f)));
-	state.addCharacter(0, new Character(sf::Vector2f(50.f, 50.f), sf::Vector2f(350.f, 300.f)));
+	// state.addPlatform(0, new MovingPlatform(sf::Vector2f(200.f, 100.f), sf::Vector2f(300.f, 400.f), sf::Vector2f(.6f,0.6f)));
+	// state.addPlatform(1, new Platform(sf::Vector2f(200.f, 100.f), sf::Vector2f(0.f, 400.f)));
+	// state.addCharacter(0, new Character(sf::Vector2f(50.f, 50.f), sf::Vector2f(350.f, 300.f)));
 
-	//add textures
-	sf::Texture cheese;
-	cheese.loadFromFile("textures/cheese.jpg");
+	sf::RectangleShape *rectangle = new sf::RectangleShape(sf::Vector2f(200.f, 100.f));
+	rectangle->setFillColor(sf::Color::Green);
+	rectangle->setPosition(sf::Vector2f(350.f, 400.f));
 
-	for(const auto &p : state.platforms){
-		p.second->setTexture(&cheese);
-	} 
+	GameObject *platform = new GameObject(rectangle, new PatternMoveComponent(1, {sf::Vector2f(0,0), sf::Vector2f(0, 100), sf::Vector2f(100, 100)}), new CollisionComponent(true), new RenderComponent(window));
+
+	sf::RectangleShape *square = new sf::RectangleShape(sf::Vector2f(50.f, 50.f));
+	square->setFillColor(sf::Color::Red);
+	square->setPosition(sf::Vector2f(350.f, 300.f));
+
+	sf::RectangleShape *point = new sf::RectangleShape(sf::Vector2f(0, 0));
+
+	point->setPosition(sf::Vector2f(100, 10));
+
+	GameObject *spawnPoint = new GameObject(point);
+
+	Character *character = new Character(square, 1.f, window, spawnPoint);
+
+	// sf::RectangleShape *barrier = new sf::RectangleShape(sf::Vector2f(800, 400));
+	// GameObject *viewBoundary = new GameObject(barrier);
+
+	// viewBoundary->collisionComponent = new CollisionComponent(false);
+
+	sf::RectangleShape *theVoid = new sf::RectangleShape(sf::Vector2f(800, 1));
+	theVoid->setPosition(0, 600);
+	GameObject *deathZone = new GameObject(theVoid, NULL, new CollisionComponent(false), NULL);
+	// deathZone->collisionComponent = new CollisionComponent(true);
+
 
 	//create and bind socket
-	zmq::context_t context(1);
-	zmq::socket_t socket(context, zmq::socket_type::rep);
-	const char * protocol = "tcp://127.0.0.1:5555";
-	socket.bind(protocol);
-	if(!socket.connected()) {
-		std::cout << "socket wasn't bound" << std::endl;
-		return 1;
-	}
-	int clients = 0;
+
 
 	//resize mode
 	bool constant_mode = false;
@@ -87,7 +72,7 @@ int main()
 	unsigned int last_time = mainTimeline->getTime();
 	unsigned int delta;
 	//keep looping while window is open
-	while(window.isOpen()) {
+	while(window->isOpen()) {
 		current_time = mainTimeline->getTime();
 		delta = current_time - last_time;
 		last_time = current_time;
@@ -97,18 +82,18 @@ int main()
 
 		//check each event that happens to the window
 		sf::Event event;
-		while(window.pollEvent(event)) {
+		while(window->pollEvent(event)) {
 			//if the event is a close request, close the window
 			if(event.type == sf::Event::Closed) {
-				window.close();
+				window->close();
 			} else if(event.type == sf::Event::Resized && constant_mode) {
-				window.setView(sf::View(sf::FloatRect(0, 0, event.size.width, event.size.height)));
+				window->setView(sf::View(sf::FloatRect(0, 0, event.size.width, event.size.height)));
 			} else if(event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::P) {
 				constant_mode = !constant_mode;
 				if(constant_mode) {
-					window.setView(sf::View(sf::FloatRect(0, 0, window.getSize().x, window.getSize().y)));
+					window->setView(sf::View(sf::FloatRect(0, 0, window->getSize().x, window->getSize().y)));
 				} else {
-					window.setView(window.getDefaultView());
+					window->setView(window->getDefaultView());
 				}
 			} else if(event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Space) {
 				mainTimeline->pause();
@@ -123,24 +108,20 @@ int main()
 			}
 		}
 
-		std::this_thread::sleep_for(std::chrono::milliseconds(25));
+		// std::this_thread::sleep_for(std::chrono::milliseconds(25));
 
 		//clear with black
-		window.clear(sf::Color::Black);
+		window->clear(sf::Color::Black);
 
 		//update objects using the fork and join pattern
 		
 		//first clean up the log
-		state.clearUpdateLog();
 
 		//update object server is responsible for	
-		if(window.hasFocus()){
-			state.updateCharacter(0, delta);
-		}
-		state.updatePlatforms(delta);
+		
+		// state.updatePlatforms(delta);
 		
 		//start drawing the platforms while the main thread does collision logic
-		std::thread platformDrawer(drawPlatforms, &state, &window);
 		
 		//while platform are drawing do collision detection to update local character position, then do networking
 
@@ -148,91 +129,44 @@ int main()
 		 * this allows the character to land on the platforms, but makes interactions hitting the platforms from the side a little weird
 		 * each client manages their own collision detection
 		 */
-	    while(state.characters[0]->getGlobalBounds().intersects(state.platforms[0]->getGlobalBounds()) || state.characters[0]->getGlobalBounds().intersects(state.platforms[1]->getGlobalBounds())) {
-			state.characters[0]->move(sf::Vector2f(0.0f, -0.1f));
+	    // while(state.characters[0]->getGlobalBounds().intersects(state.platforms[0]->getGlobalBounds()) || state.characters[0]->getGlobalBounds().intersects(state.platforms[1]->getGlobalBounds())) {
+		// 	state.characters[0]->move(sf::Vector2f(0.0f, -0.1f));
+		// }
+		// for(int i = 0; i < state.platforms.size(); i++) {
+		// 	state.characters[0]->collisionComponent->collision(state.platforms[i]->collisionComponent);
+		// }
+
+		// state.platforms[0]->collisionComponent->getBounds();
+		// state.platforms[1]->collisionComponent->getBounds();
+
+
+		// characterDrawer.join();
+		// state.drawCharacters(&window);
+		// state.drawAll(&window);
+		
+		platform->update(delta);
+		character->update(delta);
+
+		character->collisionComponent->collision(platform->collisionComponent);
+
+		// if(!character->collisionComponent->collision(viewBoundary->collisionComponent)) {
+		// 	float x = viewBoundary->getShape()->getGlobalBounds().width / 2;
+		// 	float y = viewBoundary->getShape()->getGlobalBounds().height / 2;
+		// 	viewBoundary->getShape()->move(sf::Vector2f(x, y));
+		// 	window->getView().move(x, y);
+		// }
+
+		if(character->collisionComponent->collision(deathZone->collisionComponent)) {
+			character->respawn();
 		}
 
-		//network
-		if(clients == 0) {
-			zmq::message_t request;
-			if(socket.recv(request, zmq::recv_flags::dontwait)) {
-					clients++;
-					state.addCharacter(clients, new Character(sf::Vector2f(50.f, 50.f), sf::Vector2f(350.f, 300.f)));
-					json data_j = state.serialize();
-					data_j["clientID"] = clients;
-					std::string data = data_j.dump();
-					zmq::message_t initRep((void *) data.c_str(), data.length());
-					socket.send(initRep, zmq::send_flags::none);
-				}
-		} else {	
-			//handle first request unt
-			for(int i = 1; i <= clients; i++) {
-				zmq::message_t request;
-				socket.recv(request, zmq::recv_flags::none);
-				json req_j = json::parse(request.to_string());
-
-				if(req_j["clientID"] == 0) { //new client
-					//client is incremented so this wont count against stuff
-					state.addCharacter(++clients, new Character(sf::Vector2f(50.f, 50.f), sf::Vector2f(350.f, 300.f)));
-					json data_j = state.serialize();
-					data_j["clientID"] = clients;
-					std::string data = data_j.dump();
-					zmq::message_t initRep(data.c_str(), data.length());
-					socket.send(initRep, zmq::send_flags::none);
-				} else { // returning client
-					if(req_j["first"]) {
-						state.updateCharacter(req_j);
-					} else {
-						//decrement i to not count a clients second request
-						i--;
-					}
-
-					//tell client which part of the networking section the server is in
-					json reply_j = {
-						{"first", true},
-						{"second", false},
-					}; 
-					zmq::message_t msg(reply_j.dump().c_str(), reply_j.dump().length());
-					socket.send(msg, zmq::send_flags::none);
-				}
-			}
-		}
-
-		platformDrawer.join();
-		std::thread characterDrawer(drawCharacters, &state, &window);
-
-		if(clients != 0) {
-			//first section done, every thing is updated, now do second requests
-			for(int i = 1; i <= clients; i++) {
-				zmq::message_t request;
-				socket.recv(request, zmq::recv_flags::none);
-				json req_j = json::parse(request.to_string());
-
-				//if its not a new string
-				if(req_j["clientID"] != 0) {
-					//client knows to disregard the update if its in the wrong section
-					json updateJson = state.getUpdateLog();
-					updateJson["first"] = false;
-					updateJson["second"] = true;
-					std::string updateStr = updateJson.dump();
-					zmq::message_t serverUpdate(updateStr.c_str(), updateStr.length());
-					socket.send(serverUpdate, zmq::send_flags::none);
-
-				} else { //if client is new, tell it to hold its horse for a bit
-					//client knows to keep checking in until it is given
-					socket.send(request, zmq::send_flags::none);
-
-					//decrement i so we dont skip any clients
-					i--;
-				}
-
-			}
-		}
-
-		characterDrawer.join();
+		// window.draw(*platform->getShape());
+		// window.draw(*character->getShape());
+		platform->renderComponent->draw();
+		character->renderComponent->draw();
 
 		//end current frame
-		window.display();
+		window->display();
 	}
 
 	return 0;

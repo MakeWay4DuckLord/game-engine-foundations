@@ -1,33 +1,19 @@
 #include "Character.h"
+#include "components/CharMoveComponent.h"
+#include "components/CollisionComponent.h"
+#include "components/RenderComponent.h"
 
-Character::Character(sf::Vector2f size, sf::Vector2f position, int speed): GameObject(size, position)
-{
-    this->speed = speed;
-};
+Character::Character(sf::Shape *shape, float speed, sf::RenderWindow *window, GameObject *spawnPoint) : GameObject(shape, new CharMoveComponent(speed), new CollisionComponent(false), new RenderComponent(window)) {
+    // this->setSpawnPoint(new GameObject(new sf::RectangleShape(sf::Vector2f(0,0))));
+    // this->spawnPoint->getShape()->setPosition(spawnPoint);
+    this->setSpawnPoint(spawnPoint);
+    this->respawn();
+}
 
-Character::Character(sf::Vector2f size, sf::Vector2f position): GameObject(size, position)
-{
-    this->speed = DEFAULT_SPEED;
-};
+void Character::respawn() {
+    this->getShape()->setPosition(this->spawnPoint->getShape()->getPosition());
+}
 
-void Character::updateGameObject(unsigned int delta)
-{
-    //move .1 in appropriate direction if key is pressed
-    if(sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
-        move(sf::Vector2f(0.0f, -1.0f * delta * speed));
-    } else {
-        move(sf::Vector2f(0.0f, 1.0f * delta * speed));
-    }
-
-    if(sf::Keyboard::isKeyPressed(sf::Keyboard::A)) {
-        move(sf::Vector2f(-1.0f * delta * speed, 0.0f));
-    }
-
-    // if(sf::Keyboard::isKeyPressed(sf::Keyboard::S)) {
-    //     move(sf::Vector2f(0.0f, 0.1f));
-    // }
-
-    if(sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
-        move(sf::Vector2f(1.0f * delta * speed, 0.0f));
-    }
+void Character::setSpawnPoint(GameObject *spawnPoint) {
+    this->spawnPoint = spawnPoint;
 }
