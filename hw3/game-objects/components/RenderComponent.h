@@ -6,6 +6,5 @@ class RenderComponent : public ObjectComponent {
     public:
         RenderComponent(sf::RenderWindow *window);
         void draw();
-    private:
         sf::RenderWindow *window;
 };

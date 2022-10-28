@@ -14,6 +14,7 @@ sf::FloatRect CollisionComponent::getBounds() {
 }
 
 bool CollisionComponent::isSolid() {
+
     return this->solid;
 }
 
@@ -30,10 +31,16 @@ bool CollisionComponent::collision(CollisionComponent *other) {
     if(ourBounds.intersects(theirBounds)) {
         //do collision behavior
         if(other->isSolid()) {
+            //colliding from top
             if(ourBounds.top + ourBounds.height / 3 < theirBounds.top) {
                 object->getShape()->setPosition(ourBounds.left,theirBounds.top - ourBounds.height);
-            } else if(ourBounds.left + ourBounds.width > theirBounds.left) {
+
+            //colliding from right
+            } else if(ourBounds.left < theirBounds.left + theirBounds.width && ourBounds.left + ourBounds.width > theirBounds.left + theirBounds.width) {
                 object->getShape()->setPosition(theirBounds.left + theirBounds.width, ourBounds.top);
+            //colliding from left    
+            } else if(ourBounds.left < theirBounds.left ){
+                object->getShape()->setPosition(theirBounds.left - ourBounds.width, ourBounds.top);
             } else {
                 object->getShape()->setPosition(ourBounds.left, theirBounds.top + theirBounds.height);
             }

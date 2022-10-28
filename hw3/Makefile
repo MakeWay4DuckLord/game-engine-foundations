@@ -6,9 +6,9 @@ src := $(call rwildcard,./,*.cpp)
 obj = $(patsubst %.cpp,%.o,$(src))
 # clientObj = $(patsubst main%,client%,$(src))
 
-INC_PATH = /home/squirrel/Documents/csc481-fa22/hw3/part1
+INC_PATH = /home/squirrel/Documents/csc481-fa22/hw3
 
-LDFLAGS = -lsfml-graphics -lsfml-window -lsfml-system -lzmq -pthread 
+LDFLAGS = -lsfml-graphics -lsfml-window -lsfml-system -lzmq -pthread -g 
 
 INTELMAC_INCLUDEDIR=/usr/local/include			# Intel mac
 APPLESILICON_INCLUDEDIR=/opt/homebrew/include	# Apple Silicon

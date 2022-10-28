@@ -1,6 +1,6 @@
 #pragma once
-#include <nlohmann/json.hpp>
-#include <string.h>
+// #include <nlohmann/json.hpp>
+// #include <string.h>
 // #include "game-objects/GameObject.h"
 
 //forward declaration
@@ -12,7 +12,7 @@ class GameObject;
 //     RENDER
 // };
 
-using json = nlohmann::json;
+// using json = nlohmann::json;
 /**
  * ObjectComponent is a virtual class for components of game objects
  * All ObjectComponents will have some data, and some behavior,
@@ -28,8 +28,4 @@ class ObjectComponent
         void *data;
         //sets the components pointer to the GameObject containing it
         void setObject(GameObject *object);
-        // virtual void updateComponent();
-        //convert component into a json object
-        // virtual json serialize();
-        // virtual void deserialize(json serialization);
 };
