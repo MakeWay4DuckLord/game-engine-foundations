@@ -1,2 +1,5 @@
 *.o
 main
+server
+client
+*.json
