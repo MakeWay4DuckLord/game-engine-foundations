@@ -3,6 +3,8 @@
 #include "game-objects/Character.h"
 #include "game-objects/components/CollisionComponent.h"
 #include "game-objects/components/RenderComponent.h"
+#include "events/EventManager.h"
+#include "events/CharacterHandler.h"
 #include <cmath>
 #include <string>
 #include <sstream>
@@ -26,6 +28,7 @@ void Scene::addObject(GameObject *object) {
         //first character added to a Scene is the one the client with that Scene controls
         if(characters.size() == 0) {
             character = (Character *) object;
+            EventManager::getInstance()->registerHandler({EventType::DEATH, EventType::SPAWN, EventType::COLLISION}, new CharacterHandler(character));
         }
         //add character to characters map
         characters.emplace(object->getId(), object);
@@ -89,16 +92,25 @@ void Scene::updateCharacter(unsigned int delta) {
 }
 
 void Scene::calculateCollisions() {
+
+    //TODO
+
+    /*
+        if character is colliding with sumn, raise collision
+    */
+ 
+
     for(CollisionComponent *p : terrain) {
         character->collisionComponent->collision(p);
     }
 
     for(CollisionComponent *d : hazards) {
         if(character->collisionComponent->collision(d)) {
-            character->respawn();
+            // EventManager::getInstance()->raise(*(new Event(EventType::DEATH)));
             scrolling = true;
         }
     } 
+    
 
     if(viewBoundary && (!character->collisionComponent->collision(viewBoundary->collisionComponent) || scrolling)) {
         float x1 = viewBoundary->getShape()->getPosition().x;

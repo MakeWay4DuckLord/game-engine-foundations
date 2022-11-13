@@ -9,6 +9,9 @@
 #include "timeline/Timeline.h"
 #include "game-objects/GameObject.h"
 #include "game-objects/Character.h"
+#include "events/Event.h"
+#include "events/KeyboardHandler.h"
+#include "events/EventManager.h"
 #include "Scene.h"
 #include <iostream>
 #include <unistd.h>
@@ -49,6 +52,10 @@ int main()
 	unsigned int current_time;
 	unsigned int last_time = mainTimeline->getTime();
 	unsigned int delta;
+
+
+
+
 	//keep looping while window is open
 	while(window->isOpen()) {
 		current_time = mainTimeline->getTime();
@@ -84,6 +91,18 @@ int main()
 				last_time *= 2.0f / mainTimeline->setScalar(2.0f);
 			}
 		}
+
+		//little trivial event handler stuff to see if everything is compiling
+		// Event demo(EventType::INPUT, NULL);
+		// Event deathmo(EventType::DEATH, NULL);
+		// if(sf::Keyboard::isKeyPressed(sf::Keyboard::L)) {
+		// 	// demoHandler->onEvent(demo);
+		// 	manager->raise(demo);
+		// } else {
+		// 	// demoHandler->onEvent(deathmo);
+		// 	manager->raise(deathmo);
+		// }
+		
 
 		//clear with black
 		window->clear(sf::Color::Black);
