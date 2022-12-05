@@ -3,6 +3,8 @@
 // #include "game-objects/GameObject.h"
 #include <SFML/Graphics/Shape.hpp>
 #include <string.h>
+#include <v8.h>
+
 class CollisionComponent : public ObjectComponent
 {
     public:
@@ -16,9 +18,10 @@ class CollisionComponent : public ObjectComponent
         sf::FloatRect getBounds();
         bool isSolid();
         void setOnCollisionScript(std::string handle, std::string path=NULL);
-        
+        // void createContext()
+
     private:
         bool solid;
         std::string onCollisionScript;
-        
+
 };

@@ -1,6 +1,6 @@
 #pragma once
 
-#define V8H_DEBUG 1
+#define V8H_DEBUG 0
 
 #include <v8.h>
 #include <iostream>

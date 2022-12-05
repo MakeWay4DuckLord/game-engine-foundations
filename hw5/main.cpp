@@ -41,7 +41,7 @@ int main()
 	scene->createObject("platform_3", TYPE_PLATFORM, sf::Vector2f(200,100), sf::Vector2f(1150,100), sf::Color::Magenta, NULL, new CollisionComponent(true), new RenderComponent(window));
 	scene->createObject("platform_4", TYPE_PLATFORM, sf::Vector2f(200,100), sf::Vector2f(550,150), sf::Color::Cyan, NULL, new CollisionComponent(true), new RenderComponent(window));
 	scene->createObject("spawn_point1", TYPE_SPAWN_POINT, sf::Vector2f(0,0), sf::Vector2f(675,345), sf::Color::Black, NULL, NULL, NULL);
-	GameObject *character0 = scene->createObject("character0", TYPE_CHARACTER, sf::Vector2f(50,50), sf::Vector2f(0,0), sf::Color::Red, NULL, NULL, NULL);
+	GameObject *character0 = scene->createObject("character", TYPE_CHARACTER, sf::Vector2f(50,50), sf::Vector2f(0,0), sf::Color::Red, NULL, NULL, NULL);
 	scene->createObject("view_boundary0", TYPE_VIEW_BOUNDARY, sf::Vector2f(500, 500), sf::Vector2f(100,0), sf::Color::Black, NULL, new CollisionComponent(false), NULL);
 	scene->createObject("death_floor", TYPE_DEATH_ZONE, sf::Vector2f(3000, 100), sf::Vector2f(0, 900), sf::Color::White, NULL, new CollisionComponent(false), NULL);
 	// scene->createObject("death ceiling", TYPE_DEATH_ZONE, sf::Vector2f(3000, 100), sf::Vector2f(0, -100), sf::Color::White, NULL, new CollisionComponent(false), new RenderComponent(window));
@@ -98,9 +98,18 @@ int main()
 		sm->addContext(isolate, object_context, "object_context");
 
 		character0->exposeToV8(isolate, object_context);
+		// character0->exposeToV8(isolate, object_context);
 
 		sm->addScript("test_accessors", "scripting/scripts/test_accessors.js", "object_context");
 
+
+		//create context for collisions
+		v8::Local<v8::Context> collision_context = v8::Context::New(isolate, NULL, global);
+		sm->addContext(isolate, collision_context, "collision_context");
+
+		character0->exposeToV8(isolate, collision_context);
+
+		sm->addScript("solid_collision", "scripting/scripts/solid_collision.js", "collision_context");
 
 		//keep looping while window is open
 		while(window->isOpen()) {
