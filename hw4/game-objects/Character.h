@@ -1,5 +1,6 @@
 #pragma once
 #include "game-objects/GameObject.h"
+#include "game-objects/components/CharMoveComponent.h"
 
 // class GameObject;
 
@@ -10,5 +11,6 @@ class Character : public GameObject {
         void setSpawnPoint(GameObject *spawnPoint);
     private:
         GameObject *spawnPoint;
+        CharMoveComponent *charMoveComp;
 
 };

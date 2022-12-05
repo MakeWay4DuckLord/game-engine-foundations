@@ -4,23 +4,25 @@
 #include "game-objects/components/CollisionComponent.h"
 #include "game-objects/components/RenderComponent.h"
 #include "events/EventManager.h"
-#include "events/CharacterHandler.h"
+// #include "events/CharacterHandler.h"
 #include <cmath>
 #include <string>
 #include <sstream>
 
 Scene::Scene(sf::RenderWindow *window) {
     this->window = window;
-    viewBoundary = NULL;
-    spawnPoint = NULL;
-    character = NULL;
-    scrolling = false;
-    characters = {};
-    objects = {};
-    terrain = {};
-    hazards = {};
-    foreground = {};
-    background = {};
+    this->time = 0;
+    this->viewBoundary = NULL;
+    this->spawnPoint = NULL;
+    this->character = NULL;
+    this->characterHandler = NULL;
+    this->scrolling = false;
+    this->characters = {};
+    this->objects = {};
+    this->terrain = {};
+    this->hazards = {};
+    this->foreground = {};
+    this->background = {};
 }
 
 void Scene::addObject(GameObject *object) {
@@ -28,7 +30,8 @@ void Scene::addObject(GameObject *object) {
         //first character added to a Scene is the one the client with that Scene controls
         if(characters.size() == 0) {
             character = (Character *) object;
-            EventManager::getInstance()->registerHandler({EventType::DEATH, EventType::SPAWN, EventType::COLLISION}, new CharacterHandler(character));
+            characterHandler = new CharacterHandler(character);
+            EventManager::getInstance()->registerHandler({EventType::DEATH, EventType::SPAWN, EventType::COLLISION, EventType::INPUT}, characterHandler);
         }
         //add character to characters map
         characters.emplace(object->getId(), object);
@@ -88,18 +91,14 @@ void Scene::updateObjects(unsigned int delta) {
 }
 
 void Scene::updateCharacter(unsigned int delta) {
+    if(window->hasFocus()) {
+        //raise input events based on keyboard input
+        characterHandler->pollInputs();
+    }
     character->update(delta);
 }
 
 void Scene::calculateCollisions() {
-
-    //TODO
-
-    /*
-        if character is colliding with sumn, raise collision
-    */
- 
-
     for(CollisionComponent *p : terrain) {
         character->collisionComponent->collision(p);
     }
@@ -130,9 +129,11 @@ void Scene::calculateCollisions() {
 }
 
 void Scene::update(unsigned int delta) {
+    
     updateObjects(delta);
     updateCharacter(delta);
     calculateCollisions();
+    EventManager::getInstance()->handleEvents();
 }
 
 void Scene::draw() {

@@ -9,8 +9,7 @@
 #include "timeline/Timeline.h"
 #include "game-objects/GameObject.h"
 #include "game-objects/Character.h"
-#include "events/Event.h"
-#include "events/KeyboardHandler.h"
+// #include "events/Event.h"
 #include "events/EventManager.h"
 #include "Scene.h"
 #include <iostream>
@@ -52,6 +51,8 @@ int main()
 	unsigned int current_time;
 	unsigned int last_time = mainTimeline->getTime();
 	unsigned int delta;
+
+	EventManager::getInstance()->setTimeline(new Timeline(mainTimeline, 1));
 
 
 
@@ -102,6 +103,8 @@ int main()
 		// 	// demoHandler->onEvent(deathmo);
 		// 	manager->raise(deathmo);
 		// }
+
+		
 		
 
 		//clear with black

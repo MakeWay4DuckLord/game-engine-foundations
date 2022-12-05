@@ -1,30 +1,35 @@
 #include "CharMoveComponent.h"
 #include "RenderComponent.h"
 #include "game-objects/GameObject.h"
+#include "events/CharacterHandler.h"
 
 CharMoveComponent::CharMoveComponent(float speed) {
     this->speed = speed;
+    this->inputQueue = std::queue<sf::Keyboard::Key>();
 }
 
 sf::Vector2f CharMoveComponent::getVelocity(unsigned int delta) {
     //by default you just fall
     sf::Vector2f velocity(0.f, speed * delta);
 
-    //all characters should have a renderComponent, but check anyway, and only check for input if window has focus
-    if(object->renderComponent && object->renderComponent->window->hasFocus()) {
-        //"jump" is kinda just flight. physics based jump would be cool, but this works for now
-        if(sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
-            velocity.y *= -1;
-        }
+    while(!inputQueue.empty()) {
 
-        if(sf::Keyboard::isKeyPressed(sf::Keyboard::A)) {
+        sf::Keyboard::Key input = inputQueue.front();
+
+        if(input == LEFT) {
             velocity.x -= speed * delta;
-        }
-
-        if(sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
+        } else if(input == RIGHT) {
             velocity.x += speed * delta;
+        } else if(input == JUMP) {
+            velocity.y -= 2 * speed * delta;
         }
+    
+        inputQueue.pop();
     }
 
     return velocity;
+}
+
+void CharMoveComponent::enqueueInput(sf::Keyboard::Key key) {
+    inputQueue.push(key);
 }

@@ -4,19 +4,24 @@ enum EventType {
     COLLISION,
     DEATH,
     SPAWN,
-    INPUT
+    INPUT,
+    SHUTDOWN
 };
 
 /**
  * Event is a generic class that represents a condition to which some system in the engine or game may wish to respond to.
- * Event types are represented by an enumeration, and derived classes may provide additional data needed to properly handle the event.
+ * Events store a void *data which can be used to store some information needed to properly handle the event,
+ * The EventType is represented with an enumeration, care should be used stay consistent with the what data type is stored for each EventType
  */
 class Event {
     public:
         EventType type;
+
         Event(EventType type, void *data);
         Event(EventType type);
         void *data;
-
-        // bool replicated;
+        friend bool operator< (Event const& e1, Event const& e2);
+        void setTimestamp(unsigned int time);
+        unsigned int timestamp;
+        bool replicated;
 };

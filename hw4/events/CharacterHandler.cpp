@@ -1,15 +1,18 @@
 #include "events/CharacterHandler.h"
 #include "events/EventManager.h"
 #include "game-objects/components/CollisionComponent.h"
+#include "game-objects/components/CharMoveComponent.h"
+#include <iostream>
+
 
 CharacterHandler::CharacterHandler(Character *character) {
     this->character = character;
 }
 
 void CharacterHandler::onEvent(Event e) {
+    // return;
     switch (e.type)
     {
-
     case EventType::COLLISION:
         if(true) {
         CollisionComponent *other = (CollisionComponent *) e.data;
@@ -37,7 +40,6 @@ void CharacterHandler::onEvent(Event e) {
             EventManager::getInstance()->raise(*new Event(EventType::DEATH));
         }
         }
-        // object->move(sf::Vector2f(0.f,-10.f));
         break;
     
     case EventType::DEATH:
@@ -48,7 +50,31 @@ void CharacterHandler::onEvent(Event e) {
         this->character->respawn();
         break;
 
+    case EventType::INPUT:
+
+        if(true) {    
+            sf::Keyboard::Key *key = (sf::Keyboard::Key *) e.data;             
+            CharMoveComponent *movementComp = (CharMoveComponent *) character->movementComponent;
+            movementComp->enqueueInput(*key);
+        }
+        break;
     default:
         break;
     }
+}
+
+void CharacterHandler::pollInputs() {
+
+    if(sf::Keyboard::isKeyPressed(LEFT)) {
+        EventManager::getInstance()->raise(*(new Event(EventType::INPUT, &LEFT)));
+    }
+
+    if(sf::Keyboard::isKeyPressed(RIGHT)) {
+        EventManager::getInstance()->raise(*(new Event(EventType::INPUT, &RIGHT)));
+    }
+    
+    if(sf::Keyboard::isKeyPressed(JUMP)) {
+        EventManager::getInstance()->raise(*(new Event(EventType::INPUT, &JUMP)));
+    }
+
 }

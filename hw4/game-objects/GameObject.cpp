@@ -6,7 +6,6 @@
 // #include <SFML/Graphics.hpp>
 #include <vector>
 
-// using json = nlohmann::json;
 
 GameObject::GameObject(std::string id, std::string type, sf::Shape *shape, MovementComponent *movementComponent, CollisionComponent *collisionComponent, RenderComponent *renderComponent) {
     this->id = id;

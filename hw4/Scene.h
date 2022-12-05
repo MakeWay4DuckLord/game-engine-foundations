@@ -2,6 +2,7 @@
 // #include "game-objects/components/CollisionComponent.h"
 // #include "game-objects/components/RenderComponent.h"
 // #include "game-objects/Character.h" // forward declares a lot of things which will need to be included in source file
+#include "events/CharacterHandler.h"
 #include <nlohmann/json.hpp>
 #include <SFML/Graphics.hpp>
 #include <vector>
@@ -65,7 +66,7 @@ class Scene
         json getCharacterUpdate();
 
         void removeCharacter(std::string id);
-        
+
     private:
         //map of integer ids to character pointers
         std::map<std::string, GameObject *> characters;
@@ -93,12 +94,15 @@ class Scene
         //character which the client(or server) with this scene instance controls.
         Character *character;
 
+        CharacterHandler *characterHandler;
+
         sf::RenderWindow *window;
 
         void scrollView();
 
         bool scrolling; 
-
+ 
+        unsigned int time;
         
 
         // void initializeUpdateLog();
