@@ -9,6 +9,6 @@
    - [hw2:](https://github.com/MakeWay4DuckLord/game-engine-foundations/tree/main/hw2) Client/server networked multiplayer using ZMQ sockets
    - [hw3:](https://github.com/MakeWay4DuckLord/game-engine-foundations/tree/main/hw3) Component based game object model.
    - [hw4:](https://github.com/MakeWay4DuckLord/game-engine-foundations/tree/main/hw4)  Custom event management system.
-   - [hw5:](https://github.com/MakeWay4DuckLord/game-engine-foundations/tree/main/hw5) Scripting system using node js. HW 5 also includes an implementation of a flappy bird like game made with minimal changes to the engine to demonstrate the versatility and extensibility.
+   - [hw5:](https://github.com/MakeWay4DuckLord/game-engine-foundations/tree/main/hw5) Scripting system using node js. HW 5 also includes an implementation of a flappy bird like game made with minimal changes to the engine to demonstrate the engines versatility and extensibility.
 
    Each homework directory contains a readme file with compilation and execution instructions.
