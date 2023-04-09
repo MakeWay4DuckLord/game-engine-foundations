@@ -1,4 +1,4 @@
-# csc481-fa22
+# csc481-fa22 Game Engine Foundations
    
    This repository contains 5 directories each with one version of a game engine developed
    over the course of a semester of CSC 481.
